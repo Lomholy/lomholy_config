@@ -177,6 +177,10 @@ spotify_next=(
 # ▸ SketchyBar Setup
 # ────────────────────────────────────
 
+# The plugin skips the cover when the track's artwork URL matches the one it
+# last saved; forget it so a fresh bar sets the cover for the current track
+rm -f /tmp/cover.jpg.url
+
 sketchybar --add event spotify_change $SPOTIFY_EVENT             \
            --add event spotify_init                              \
            --add item spotify.anchor right                       \
