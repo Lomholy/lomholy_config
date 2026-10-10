@@ -14,9 +14,9 @@ GREEN=0xff00ff00
 # If you are looking for other colors, see the color picker:
 # https://felixkratz.github.io/SketchyBar/config/tricks#color-picker
 
-# topmost=on keeps the bar above the auto-hidden macOS menu bar, which
-# otherwise slides down over it when the mouse reaches the top edge
-sketchybar --bar position=top height=40 blur_radius=30 color=0x40000000 topmost=on
+# No background blur: sketchybar's bar blur can get stuck blurring the whole
+# bar after a click until sketchybar is restarted
+sketchybar --bar position=top height=40 blur_radius=0 color=0x40000000
 
 ##### Changing Defaults #####
 # We now change some default values, which are applied to all further items.
