@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
 
-# Rebuilds the workspace items: every workspace on the focused monitor that has
-# windows, plus the focused one. The focused one is highlighted.
+# Keeps one item per workspace and animates it instead of rebuilding the bar:
+# a workspace on the focused monitor grows in when it gets windows (or focus)
+# and shrinks out when it empties, and the highlight fades to the focused one.
 # Order follows the alt-<N> = 'workspace <name>' keybindings in aerospace.toml;
 # workspaces without a keybinding come last, in AeroSpace's order.
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
+# Run one instance at a time so two events can't add the same item twice
+if [ -z "$AEROSPACE_WORKSPACES_LOCKED" ]; then
+  AEROSPACE_WORKSPACES_LOCKED=1 exec lockf -k "${TMPDIR:-/tmp}/sketchybar_aerospace_workspaces.lock" "$0" "$@"
+fi
+
 config="$HOME/.config/aerospace/aerospace.toml"
 [ -f "$config" ] || config="$HOME/.aerospace.toml"
+
+curve=tanh
+frames=15 # animation length in frames (60 per second)
 
 focused="${FOCUSED_WORKSPACE:-$(aerospace list-workspaces --focused)}"
 on_monitor="$(aerospace list-workspaces --monitor focused)"
@@ -22,29 +31,48 @@ ordered="$(
   } | awk '!seen[$0]++'
 )"
 
-args=(--remove '/^space\..*/')
+existing="$(sketchybar --query bar | grep -o '"space\.[^"]*"' | tr -d '"')"
+
+add=()
+order=(aerospace_workspaces)
+state=()
 while IFS= read -r ws; do
   [ -n "$ws" ] || continue
-  grep -Fxq -- "$ws" <<<"$on_monitor" || continue
-  if [ "$ws" != "$focused" ] && ! grep -Fxq -- "$ws" <<<"$non_empty"; then
-    continue
+  item="space.$ws"
+  order+=("$item")
+
+  if ! grep -Fxq -- "$item" <<<"$existing"; then
+    add+=(
+      --add item "$item" left
+      --set "$item"
+        width=0
+        padding_left=0
+        padding_right=0
+        background.drawing=on
+        background.color=0x00ffffff
+        background.height=20
+        icon="$ws"
+        icon.align=center
+        icon.padding_left=12
+        icon.highlight=on
+        icon.highlight_color=0x0000ff00
+        click_script="aerospace workspace '$ws'"
+    )
   fi
-  [ "$ws" = "$focused" ] && selected=on || selected=off
-  args+=(
-    --add item "space.$ws" left
-    --set "space.$ws"
-      background.color=0x44ffffff
-      background.height=20
-      background.drawing="$selected"
-      width=40
-      icon="$ws"
-      icon.align=center
-      icon.padding_left=12
-      icon.highlight=on
-      icon.highlight_color=0xff00ff00
-      click_script="aerospace workspace '$ws'"
-  )
+
+  if grep -Fxq -- "$ws" <<<"$on_monitor" &&
+    { [ "$ws" = "$focused" ] || grep -Fxq -- "$ws" <<<"$non_empty"; }; then
+    state+=(--set "$item" width=40 padding_left=5 padding_right=5 icon.highlight_color=0xff00ff00)
+  else
+    state+=(--set "$item" width=0 padding_left=0 padding_right=0 icon.highlight_color=0x0000ff00)
+  fi
+
+  if [ "$ws" = "$focused" ]; then
+    state+=(background.color=0x44ffffff)
+  else
+    state+=(background.color=0x00ffffff)
+  fi
 done <<<"$ordered"
 
-sketchybar "${args[@]}"
-
+[ ${#add[@]} -gt 0 ] && sketchybar "${add[@]}" --reorder "${order[@]}"
+sketchybar --animate "$curve" "$frames" "${state[@]}"
