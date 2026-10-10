@@ -91,9 +91,13 @@ spotify_album=(
   label.color=$TERTIARY_COLOR
 )
 
-ICON_WIDTH=50
-LABEL_WIDTH=50
-SLIDER_WIDTH=100
+# The title/artist/album/progress rows have width=0, so the popup's width comes
+# from the cover plus the controls row. The progress row (time, slider, time)
+# is sized to fit inside the controls row.
+CONTROLS_ROW_WIDTH=132 # back + play + next, including padding
+ICON_WIDTH=35
+LABEL_WIDTH=35
+SLIDER_WIDTH=$((CONTROLS_ROW_WIDTH - ICON_WIDTH - LABEL_WIDTH))
 
 STATE_WIDTH=$([ "$SPOTIFY_DISPLAY_CONTROLS" = true ] && echo 0 || echo $((ICON_WIDTH + LABEL_WIDTH + SLIDER_WIDTH)))
 
@@ -106,7 +110,7 @@ spotify_state=(
   label.font="$FONT:Light Italic:10.0"
   label.width=$LABEL_WIDTH
   label="00:00"
-  label.padding_left=20
+  label.align=right
   y_offset=$((Y_OFFSET))
   width=$STATE_WIDTH
   slider.background.height=6
@@ -165,11 +169,6 @@ spotify_next=(
   y_offset=$CONTROLS_Y_OFFSET
 )
 
-# The title/artist/album/progress rows have width=0, so the popup's width comes
-# from the cover plus the controls row. Pad the controls row so the popup is
-# wider than the progress row (time, slider, time).
-CONTROLS_ROW_WIDTH=132 # back + play + next, including padding
-SPACER_WIDTH=$((ICON_WIDTH + LABEL_WIDTH + SLIDER_WIDTH - CONTROLS_ROW_WIDTH))
 
 # ────────────────────────────────────
 # ▸ SketchyBar Setup
@@ -215,7 +214,7 @@ if [ "$SPOTIFY_DISPLAY_CONTROLS" = true ]; then
              --subscribe spotify.next mouse.clicked                \
                                                                    \
              --add item spotify.spacer popup.spotify.anchor        \
-             --set spotify.spacer width=$SPACER_WIDTH
+             --set spotify.spacer width=5
 fi
 
 # ────────────────────────────────────
