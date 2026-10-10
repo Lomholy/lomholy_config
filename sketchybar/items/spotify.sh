@@ -35,10 +35,11 @@ spotify_anchor=(
   popup.horizontal=on
   popup.align=center
   popup.height=$POPUP_HEIGHT
-  icon=􁁒
-  icon.font="$FONT:Regular:25.0"
+  icon=󰓇
+  icon.font="Hack Nerd Font:Bold:20.0"
   label.drawing=off
   drawing=off
+  update_freq=5
   y_offset=2
 )
 
@@ -119,7 +120,7 @@ spotify_state=(
 CONTROLS_Y_OFFSET=$((-30 + Y_OFFSET))
 
 spotify_shuffle=(
-  icon=􀊝
+  icon=󰒟
   icon.padding_left=5
   icon.padding_right=5
   icon.color=$DISABLED_COLOR
@@ -131,7 +132,7 @@ spotify_shuffle=(
 )
 
 spotify_back=(
-  icon=􀊎
+  icon=󰒮
   icon.padding_left=5
   icon.padding_right=5
   icon.color=$BACKGROUND
@@ -141,7 +142,7 @@ spotify_back=(
 )
 
 spotify_play=(
-  icon=􀊄
+  icon=󰐊
   background.height=40
   background.corner_radius=20
   width=40
@@ -160,7 +161,7 @@ spotify_play=(
 )
 
 spotify_next=(
-  icon=􀊐
+  icon=󰒭
   icon.padding_left=5
   icon.padding_right=5
   icon.color=$BACKGROUND
@@ -170,7 +171,7 @@ spotify_next=(
 )
 
 spotify_repeat=(
-  icon=􀊞
+  icon=󰑖
   icon.highlight_color=$BACKGROUND
   icon.padding_left=5
   icon.padding_right=10
@@ -192,11 +193,12 @@ spotify_controls=(
 # ────────────────────────────────────
 
 sketchybar --add event spotify_change $SPOTIFY_EVENT             \
+           --add event spotify_init                              \
            --add item spotify.anchor right                       \
            --set spotify.anchor "${spotify_anchor[@]}"           \
            --subscribe spotify.anchor mouse.entered mouse.exited \
                                      mouse.exited.global         \
-                                     spotify_init                \
+                                     spotify_init spotify_change \
                                                                  \
            --add item spotify.cover popup.spotify.anchor         \
            --set spotify.cover "${spotify_cover[@]}"             \
@@ -252,5 +254,4 @@ fi
 # ────────────────────────────────────
 # ▸ Trigger Initial Update
 # ────────────────────────────────────
-sketchybar --add event spotify_init
 sketchybar --trigger spotify_init

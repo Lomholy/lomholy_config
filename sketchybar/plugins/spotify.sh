@@ -54,20 +54,25 @@ truncate_text() {
 }
 
 update() {
+  # pgrep needs no Automation permission and, unlike osascript, never launches Spotify
+  if ! pgrep -xq Spotify; then
+    sketchybar -m --set spotify.anchor drawing=off popup.drawing=off
+    exit 0
+  fi
+  sketchybar -m --set spotify.anchor drawing=on
+
   local state
   state=$(osascript -e 'tell application "Spotify" to get player state' 2>/dev/null)
-
   if [ "$state" != "playing" ] && [ "$state" != "paused" ]; then
-    sketchybar -m --set spotify.anchor drawing=off popup.drawing=off \
-    exit 0
+    return
   fi
   # Set play or pause icon depending on state
   local play_icon=""
   if [ "$SPOTIFY_DISPLAY_CONTROLS" = "true" ]; then
     if [ "$state" = "playing" ]; then
-      play_icon="􀊆"  # pause icon
+      play_icon="󰏤"  # pause icon
     else
-      play_icon="􀊄"  # play icon
+      play_icon="󰐊"  # play icon
     fi
   fi
 
@@ -77,12 +82,14 @@ update() {
   album=$(osascript -e 'tell application "Spotify" to get album of current track')
   cover_url=$(osascript -e 'tell application "Spotify" to get artwork url of current track')
   
-  # Download cover image with fallback
-  if curl -s --max-time 5 "$cover_url" -o "$COVER_PATH"; then
-    sketchybar -m --set spotify.cover background.image="$COVER_PATH" background.color=0x00000000
-  else
-    # fallback if download fails
-    sketchybar -m --set spotify.cover background.image="" background.color=0x00000000
+  # Download the cover only when the track changes
+  if [ "$cover_url" != "$(cat "$COVER_PATH.url" 2>/dev/null)" ]; then
+    echo "$cover_url" > "$COVER_PATH.url"
+    if curl -s --max-time 5 "$cover_url" -o "$COVER_PATH"; then
+      sketchybar -m --set spotify.cover background.image="$COVER_PATH" background.color=0x00000000
+    else
+      sketchybar -m --set spotify.cover background.image="" background.color=0x00000000
+    fi
   fi
 
   track=$(truncate_text "$track" $((MAX_LABEL_LENGTH * 7/10)))
@@ -92,11 +99,13 @@ update() {
   sketchybar -m \
     --set spotify.title label="$track" \
     --set spotify.artist label="$artist" \
-    --set spotify.album label="$album" \
-    --set spotify.anchor drawing=on
-  
+    --set spotify.album label="$album"
+
   # Only update these if controls are enabled
   if [ "$SPOTIFY_DISPLAY_CONTROLS" = "true" ]; then
+    local shuffle=off repeat=off
+    [ "$(osascript -e 'tell application "Spotify" to get shuffling')" = "true" ] && shuffle=on
+    [ "$(osascript -e 'tell application "Spotify" to get repeating')" = "true" ] && repeat=on
     sketchybar -m \
       --set spotify.shuffle icon.highlight=$shuffle \
       --set spotify.repeat icon.highlight=$repeat \
@@ -170,8 +179,6 @@ case "$SENDER" in
   "mouse.exited"|"mouse.exited.global") popup off
   ;;
   "routine") routine
-  ;;
-  "forced") exit 0
   ;;
   *) update
   ;;
