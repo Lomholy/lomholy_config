@@ -16,6 +16,10 @@ ACCENT_COLOR=0xffd79921
 SECONDARY_COLOR=0xffbbbbbb
 TERTIARY_COLOR=0xff888888
 DISABLED_COLOR=0xffd3d3d3
+POPUP_BACKGROUND=0xc01e1e2e # dark, ~75% opaque
+# Popup border matches the window borders' active_color
+POPUP_BORDER=$(sed -nE 's/.*active_color=(0x[0-9a-fA-F]+).*/\1/p' "$HOME/.config/borders/bordersrc" 2>/dev/null)
+POPUP_BORDER=${POPUP_BORDER:-0xff957FB8}
 
 SPOTIFY_EVENT="com.spotify.client.PlaybackStateChanged"
 POPUP_SCRIPT="sketchybar -m --set spotify.anchor popup.drawing=toggle"
@@ -31,10 +35,14 @@ Y_OFFSET=$([ "$SPOTIFY_DISPLAY_CONTROLS" = false ] && echo -25 || echo -5)
 
 spotify_anchor=(
   script="$PLUGIN_DIR/spotify.sh $SPOTIFY_DISPLAY_CONTROLS"
-  click_script="$POPUP_SCRIPT"
   popup.horizontal=on
   popup.align=center
   popup.height=$POPUP_HEIGHT
+  popup.blur_radius=20
+  popup.background.color=$POPUP_BACKGROUND
+  popup.background.border_color=$POPUP_BORDER
+  popup.background.border_width=2
+  popup.background.corner_radius=11
   icon=󰓇
   icon.font="Hack Nerd Font:Bold:20.0"
   label.drawing=off
@@ -196,8 +204,7 @@ sketchybar --add event spotify_change $SPOTIFY_EVENT             \
            --add event spotify_init                              \
            --add item spotify.anchor right                       \
            --set spotify.anchor "${spotify_anchor[@]}"           \
-           --subscribe spotify.anchor mouse.entered mouse.exited \
-                                     mouse.exited.global         \
+           --subscribe spotify.anchor mouse.clicked              \
                                      spotify_init spotify_change \
                                                                  \
            --add item spotify.cover popup.spotify.anchor         \

@@ -163,6 +163,10 @@ mouse_clicked () {
     ;;
     "spotify.state") scrubbing
     ;;
+    "spotify.anchor")
+      popup toggle
+      update
+    ;;
     *) exit
     ;;
   esac
@@ -171,12 +175,6 @@ mouse_clicked () {
 
 case "$SENDER" in
   "mouse.clicked") mouse_clicked
-  ;;
-  "mouse.entered") 
-    popup on
-    update
-  ;;
-  "mouse.exited"|"mouse.exited.global") popup off
   ;;
   "routine") routine
   ;;
