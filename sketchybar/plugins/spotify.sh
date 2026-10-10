@@ -1,46 +1,26 @@
 #!/bin/bash
 
-PLUGIN_DIR="$HOME/.config/sketchybar/plugins"
 # Allow override via first arg or env variable
 SPOTIFY_DISPLAY_CONTROLS="${1:-false}"
 COVER_PATH="/tmp/cover.jpg"
 MAX_LABEL_LENGTH=35
-# Optional control functions (disabled by default)
-next () {
-  osascript -e 'tell application "Spotify" to play next track'
-  update
-}
+LOCK="${TMPDIR:-/tmp}/sketchybar_spotify.lock"
 
-back () {
-  osascript -e 'tell application "Spotify" to play previous track'
-  update
-}
-
-play () {
-  osascript -e 'tell application "Spotify" to playpause'
-  update
-}
-
-repeat_toggle () {
-  REPEAT=$(osascript -e 'tell application "Spotify" to get repeating')
-  if [ "$REPEAT" = "false" ]; then
-    sketchybar -m --set spotify.repeat icon.highlight=on
-    osascript -e 'tell application "Spotify" to set repeating to true'
-  else
-    sketchybar -m --set spotify.repeat icon.highlight=off
-    osascript -e 'tell application "Spotify" to set repeating to false'
+if [ -z "$SPOTIFY_LOCKED" ]; then
+  # Open/close the popup right away, before waiting for Spotify
+  if [ "$SENDER" = "mouse.clicked" ] && [ "$NAME" = "spotify.anchor" ]; then
+    sketchybar -m --set spotify.anchor popup.drawing=toggle
   fi
-}
+  # One run at a time: clicks wait their turn, background refreshes are skipped
+  # while another run is still talking to Spotify
+  wait=0
+  [ "$SENDER" = "mouse.clicked" ] && wait=5
+  SPOTIFY_LOCKED=1 exec lockf -s -t "$wait" "$LOCK" "$0" "$@"
+fi
 
-shuffle_toggle () {
-  SHUFFLE=$(osascript -e 'tell application "Spotify" to get shuffling')
-  if [ "$SHUFFLE" = "false" ]; then
-    sketchybar -m --set spotify.shuffle icon.highlight=on
-    osascript -e 'tell application "Spotify" to set shuffling to true'
-  else
-    sketchybar -m --set spotify.shuffle icon.highlight=off
-    osascript -e 'tell application "Spotify" to set shuffling to false'
-  fi
+# Runs AppleScript inside tell application "Spotify", giving up after 2 seconds
+spotify() {
+  osascript -e 'with timeout of 2 seconds' -e 'tell application "Spotify"' -e "$1" -e 'end tell' -e 'end timeout' 2>/dev/null
 }
 
 truncate_text() {
@@ -61,27 +41,21 @@ update() {
   fi
   sketchybar -m --set spotify.anchor drawing=on
 
-  local state
-  state=$(osascript -e 'tell application "Spotify" to get player state' 2>/dev/null)
+  local state track artist album cover_url
+  {
+    read -r state
+    read -r track
+    read -r artist
+    read -r album
+    read -r cover_url
+  } < <(spotify '
+    set s to player state as text
+    if s is "stopped" then return s
+    return s & linefeed & name of current track & linefeed & artist of current track & linefeed & album of current track & linefeed & artwork url of current track')
   if [ "$state" != "playing" ] && [ "$state" != "paused" ]; then
     return
   fi
-  # Set play or pause icon depending on state
-  local play_icon=""
-  if [ "$SPOTIFY_DISPLAY_CONTROLS" = "true" ]; then
-    if [ "$state" = "playing" ]; then
-      play_icon="󰏤"  # pause icon
-    else
-      play_icon="󰐊"  # play icon
-    fi
-  fi
 
-  local track artist album cover_url
-  track=$(osascript -e 'tell application "Spotify" to get name of current track')
-  artist=$(osascript -e 'tell application "Spotify" to get artist of current track')
-  album=$(osascript -e 'tell application "Spotify" to get album of current track')
-  cover_url=$(osascript -e 'tell application "Spotify" to get artwork url of current track')
-  
   # Download the cover only when the track changes
   if [ "$cover_url" != "$(cat "$COVER_PATH.url" 2>/dev/null)" ]; then
     echo "$cover_url" > "$COVER_PATH.url"
@@ -92,92 +66,57 @@ update() {
     fi
   fi
 
-  track=$(truncate_text "$track" $((MAX_LABEL_LENGTH * 7/10)))
-  artist=$(truncate_text "$artist")
-  album=$(truncate_text "$album")
-  
-  sketchybar -m \
-    --set spotify.title label="$track" \
-    --set spotify.artist label="$artist" \
-    --set spotify.album label="$album"
-
-  # Only update these if controls are enabled
+  local args=(
+    --set spotify.title label="$(truncate_text "$track" $((MAX_LABEL_LENGTH * 7/10)))"
+    --set spotify.artist label="$(truncate_text "$artist")"
+    --set spotify.album label="$(truncate_text "$album")"
+  )
   if [ "$SPOTIFY_DISPLAY_CONTROLS" = "true" ]; then
-    local shuffle=off repeat=off
-    [ "$(osascript -e 'tell application "Spotify" to get shuffling')" = "true" ] && shuffle=on
-    [ "$(osascript -e 'tell application "Spotify" to get repeating')" = "true" ] && repeat=on
-    sketchybar -m \
-      --set spotify.shuffle icon.highlight=$shuffle \
-      --set spotify.repeat icon.highlight=$repeat \
-      --set spotify.play icon="$play_icon"
+    if [ "$state" = "playing" ]; then
+      args+=(--set spotify.play icon="󰏤")  # pause icon
+    else
+      args+=(--set spotify.play icon="󰐊")  # play icon
+    fi
   fi
+  sketchybar -m "${args[@]}"
 }
 
 scroll() {
-  local duration_ms position time duration
-  duration_ms=$(osascript -e 'tell application "Spotify" to get duration of current track')
-  duration=$((duration_ms / 1000))
-  position=$(osascript -e 'tell application "Spotify" to get player position')
-  time=${position%.*}
+  local duration position
+  {
+    read -r duration
+    read -r position
+  } < <(spotify '
+    return (((duration of current track) div 1000) as text) & linefeed & ((round (player position) rounding down) as text)')
+  [ "${duration:-0}" -gt 0 ] 2>/dev/null || return
 
   sketchybar -m --animate linear 10 \
-    --set spotify.state slider.percentage=$((time * 100 / duration)) \
-                         icon="$(date -r $time +'%M:%S')" \
-                         label="$(date -r $duration +'%M:%S')"
+    --set spotify.state slider.percentage=$((position * 100 / duration)) \
+                         icon="$(date -r "$position" +'%M:%S')" \
+                         label="$(date -r "$duration" +'%M:%S')"
 }
 
 scrubbing() {
-  local duration_ms duration target
-  duration_ms=$(osascript -e 'tell application "Spotify" to get duration of current track')
-  duration=$((duration_ms / 1000))
-  target=$((duration * PERCENTAGE / 100))
-
-  osascript -e "tell application \"Spotify\" to set player position to $target"
-  sketchybar -m --set spotify.state slider.percentage=$PERCENTAGE
+  spotify "set player position to (duration of current track) * $PERCENTAGE / 100000"
+  sketchybar -m --set spotify.state slider.percentage="$PERCENTAGE"
 }
 
-popup() {
-  sketchybar -m --set spotify.anchor popup.drawing=$1
-}
-
-routine() {
+# Spotify sends com.spotify.client.PlaybackStateChanged after these, which
+# triggers update(), so they don't update the bar themselves
+mouse_clicked() {
   case "$NAME" in
-    "spotify.state") scroll
-    ;;
-    *) update
-    ;;
+    "spotify.next") spotify 'play next track' ;;
+    "spotify.back") spotify 'play previous track' ;;
+    "spotify.play") spotify 'playpause' ;;
+    "spotify.state") scrubbing ;;
+    "spotify.anchor") update ;;
   esac
 }
-
-mouse_clicked () {
-  case "$NAME" in
-    "spotify.next") next
-    ;;
-    "spotify.back") back
-    ;;
-    "spotify.play") play
-    ;;
-    "spotify.shuffle") shuffle_toggle
-    ;;
-    "spotify.repeat") repeat_toggle
-    ;;
-    "spotify.state") scrubbing
-    ;;
-    "spotify.anchor")
-      popup toggle
-      update
-    ;;
-    *) exit
-    ;;
-  esac
-}
-
 
 case "$SENDER" in
-  "mouse.clicked") mouse_clicked
-  ;;
-  "routine") routine
-  ;;
-  *) update
-  ;;
+  "mouse.clicked") mouse_clicked ;;
+  "routine")
+    if [ "$NAME" = "spotify.state" ]; then scroll; else update; fi
+    ;;
+  *) update ;;
 esac

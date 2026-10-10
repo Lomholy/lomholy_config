@@ -15,7 +15,6 @@ BACKGROUND_BORDER=0xff45475a
 ACCENT_COLOR=0xffd79921
 SECONDARY_COLOR=0xffbbbbbb
 TERTIARY_COLOR=0xff888888
-DISABLED_COLOR=0xffd3d3d3
 POPUP_BACKGROUND=0xc01e1e2e # dark, ~75% opaque
 # Popup border matches the window borders' active_color
 POPUP_BORDER=$(sed -nE 's/.*active_color=(0x[0-9a-fA-F]+).*/\1/p' "$HOME/.config/borders/bordersrc" 2>/dev/null)
@@ -38,7 +37,6 @@ spotify_anchor=(
   popup.horizontal=on
   popup.align=center
   popup.height=$POPUP_HEIGHT
-  popup.blur_radius=20
   popup.background.color=$POPUP_BACKGROUND
   popup.background.border_color=$POPUP_BORDER
   popup.background.border_width=2
@@ -127,21 +125,9 @@ spotify_state=(
 
 CONTROLS_Y_OFFSET=$((-30 + Y_OFFSET))
 
-spotify_shuffle=(
-  icon=󰒟
-  icon.padding_left=5
-  icon.padding_right=5
-  icon.color=$DISABLED_COLOR
-  icon.highlight_color=$BACKGROUND
-  label.drawing=off
-  script="$PLUGIN_DIR/spotify.sh $SPOTIFY_DISPLAY_CONTROLS"
-
-  y_offset=$CONTROLS_Y_OFFSET
-)
-
 spotify_back=(
   icon=󰒮
-  icon.padding_left=5
+  icon.padding_left=10
   icon.padding_right=5
   icon.color=$BACKGROUND
   script="$PLUGIN_DIR/spotify.sh $SPOTIFY_DISPLAY_CONTROLS"
@@ -171,19 +157,8 @@ spotify_play=(
 spotify_next=(
   icon=󰒭
   icon.padding_left=5
-  icon.padding_right=5
-  icon.color=$BACKGROUND
-  label.drawing=off
-  script="$PLUGIN_DIR/spotify.sh $SPOTIFY_DISPLAY_CONTROLS"
-  y_offset=$CONTROLS_Y_OFFSET
-)
-
-spotify_repeat=(
-  icon=󰑖
-  icon.highlight_color=$BACKGROUND
-  icon.padding_left=5
   icon.padding_right=10
-  icon.color=$DISABLED_COLOR
+  icon.color=$BACKGROUND
   label.drawing=off
   script="$PLUGIN_DIR/spotify.sh $SPOTIFY_DISPLAY_CONTROLS"
   y_offset=$CONTROLS_Y_OFFSET
@@ -227,11 +202,7 @@ sketchybar --add event spotify_change $SPOTIFY_EVENT             \
 # ────────────────────────────────────
 
 if [ "$SPOTIFY_DISPLAY_CONTROLS" = true ]; then
-  sketchybar --add item spotify.shuffle popup.spotify.anchor       \
-             --set spotify.shuffle "${spotify_shuffle[@]}"         \
-             --subscribe spotify.shuffle mouse.clicked             \
-                                                                   \
-             --add item spotify.back popup.spotify.anchor          \
+  sketchybar --add item spotify.back popup.spotify.anchor          \
              --set spotify.back "${spotify_back[@]}"               \
              --subscribe spotify.back mouse.clicked                \
                                                                    \
@@ -243,18 +214,12 @@ if [ "$SPOTIFY_DISPLAY_CONTROLS" = true ]; then
              --set spotify.next "${spotify_next[@]}"               \
              --subscribe spotify.next mouse.clicked                \
                                                                    \
-             --add item spotify.repeat popup.spotify.anchor        \
-             --set spotify.repeat "${spotify_repeat[@]}"           \
-             --subscribe spotify.repeat mouse.clicked              \
-                                                                   \
              --add item spotify.spacer popup.spotify.anchor        \
              --set spotify.spacer width=5                          \
                                                                    \
-             --add bracket spotify.controls spotify.shuffle        \
-                                            spotify.back           \
+             --add bracket spotify.controls spotify.back           \
                                             spotify.play           \
                                             spotify.next           \
-                                            spotify.repeat         \
              --set spotify.controls "${spotify_controls[@]}"
 fi
 
