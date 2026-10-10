@@ -87,8 +87,11 @@ scroll() {
     read -r duration
     read -r position
   } < <(spotify '
-    return (((duration of current track) div 1000) as text) & linefeed & ((round (player position) rounding down) as text)')
-  [ "${duration:-0}" -gt 0 ] 2>/dev/null || return
+    return ((duration of current track) as text) & linefeed & ((player position) as text)')
+  # duration is in ms; position is in seconds and may use a decimal comma
+  duration=$(( ${duration%%[.,]*} / 1000 ))
+  position=${position%%[.,]*}
+  [ "$duration" -gt 0 ] 2>/dev/null && [ -n "$position" ] || return
 
   sketchybar -m --animate linear 10 \
     --set spotify.state slider.percentage=$((position * 100 / duration)) \

@@ -12,7 +12,8 @@ SPOTIFY_DISPLAY_CONTROLS=true
 FONT="SF Pro"
 BACKGROUND=0xff1e1e2e
 BACKGROUND_BORDER=0xff45475a
-ACCENT_COLOR=0xffd79921
+ACCENT_COLOR=0xffff8c00 # orange
+CONTROL_COLOR=0xffd2b48c # tan
 SECONDARY_COLOR=0xffbbbbbb
 TERTIARY_COLOR=0xff888888
 POPUP_BACKGROUND=0xc01e1e2e # dark, ~75% opaque
@@ -129,7 +130,7 @@ spotify_back=(
   icon=󰒮
   icon.padding_left=10
   icon.padding_right=5
-  icon.color=$BACKGROUND
+  icon.color=$CONTROL_COLOR
   script="$PLUGIN_DIR/spotify.sh $SPOTIFY_DISPLAY_CONTROLS"
   label.drawing=off
   y_offset=$CONTROLS_Y_OFFSET
@@ -158,18 +159,17 @@ spotify_next=(
   icon=󰒭
   icon.padding_left=5
   icon.padding_right=10
-  icon.color=$BACKGROUND
+  icon.color=$CONTROL_COLOR
   label.drawing=off
   script="$PLUGIN_DIR/spotify.sh $SPOTIFY_DISPLAY_CONTROLS"
   y_offset=$CONTROLS_Y_OFFSET
 )
 
-spotify_controls=(
-  background.color=$ACCENT_COLOR
-  background.corner_radius=11
-  background.drawing=on
-  y_offset=$CONTROLS_Y_OFFSET
-)
+# The title/artist/album/progress rows have width=0, so the popup's width comes
+# from the cover plus the controls row. Pad the controls row so the popup is
+# wider than the progress row (time, slider, time).
+CONTROLS_ROW_WIDTH=132 # back + play + next, including padding
+SPACER_WIDTH=$((ICON_WIDTH + LABEL_WIDTH + SLIDER_WIDTH - CONTROLS_ROW_WIDTH))
 
 # ────────────────────────────────────
 # ▸ SketchyBar Setup
@@ -215,12 +215,7 @@ if [ "$SPOTIFY_DISPLAY_CONTROLS" = true ]; then
              --subscribe spotify.next mouse.clicked                \
                                                                    \
              --add item spotify.spacer popup.spotify.anchor        \
-             --set spotify.spacer width=5                          \
-                                                                   \
-             --add bracket spotify.controls spotify.back           \
-                                            spotify.play           \
-                                            spotify.next           \
-             --set spotify.controls "${spotify_controls[@]}"
+             --set spotify.spacer width=$SPACER_WIDTH
 fi
 
 # ────────────────────────────────────
