@@ -12,10 +12,14 @@ SPOTIFY_DISPLAY_CONTROLS=true
 FONT="SF Pro"
 BACKGROUND=0xff1e1e2e
 BACKGROUND_BORDER=0xff45475a
-ACCENT_COLOR=0xffd79921
+ACCENT_COLOR=0xffff8c00 # orange
+CONTROL_COLOR=0xffd2b48c # tan
 SECONDARY_COLOR=0xffbbbbbb
 TERTIARY_COLOR=0xff888888
-DISABLED_COLOR=0xffd3d3d3
+POPUP_BACKGROUND=0xc01e1e2e # dark, ~75% opaque
+# Popup border matches the window borders' active_color
+POPUP_BORDER=$(sed -nE 's/^[[:space:]]*active_color=(0x[0-9a-fA-F]+).*/\1/p' "$HOME/.config/borders/bordersrc" 2>/dev/null | head -1)
+POPUP_BORDER=${POPUP_BORDER:-0xff957FB8}
 
 SPOTIFY_EVENT="com.spotify.client.PlaybackStateChanged"
 POPUP_SCRIPT="sketchybar -m --set spotify.anchor popup.drawing=toggle"
@@ -31,14 +35,18 @@ Y_OFFSET=$([ "$SPOTIFY_DISPLAY_CONTROLS" = false ] && echo -25 || echo -5)
 
 spotify_anchor=(
   script="$PLUGIN_DIR/spotify.sh $SPOTIFY_DISPLAY_CONTROLS"
-  click_script="$POPUP_SCRIPT"
   popup.horizontal=on
   popup.align=center
   popup.height=$POPUP_HEIGHT
-  icon=􁁒
-  icon.font="$FONT:Regular:25.0"
+  popup.background.color=$POPUP_BACKGROUND
+  popup.background.border_color=$POPUP_BORDER
+  popup.background.border_width=2
+  popup.background.corner_radius=11
+  icon=󰓇
+  icon.font="Hack Nerd Font:Bold:20.0"
   label.drawing=off
   drawing=off
+  update_freq=5
   y_offset=2
 )
 
@@ -87,6 +95,13 @@ ICON_WIDTH=50
 LABEL_WIDTH=50
 SLIDER_WIDTH=100
 
+# The title/artist/album/progress rows have width=0, so the popup's width comes
+# from the cover plus the controls row (lead spacer, back, play, next, trail
+# spacer). The spacers centre back/play/next under the progress row and make
+# the popup wide enough to contain it.
+CONTROLS_LEAD=29
+CONTROLS_TRAIL=44
+
 STATE_WIDTH=$([ "$SPOTIFY_DISPLAY_CONTROLS" = true ] && echo 0 || echo $((ICON_WIDTH + LABEL_WIDTH + SLIDER_WIDTH)))
 
 spotify_state=(
@@ -118,30 +133,18 @@ spotify_state=(
 
 CONTROLS_Y_OFFSET=$((-30 + Y_OFFSET))
 
-spotify_shuffle=(
-  icon=􀊝
-  icon.padding_left=5
-  icon.padding_right=5
-  icon.color=$DISABLED_COLOR
-  icon.highlight_color=$BACKGROUND
-  label.drawing=off
-  script="$PLUGIN_DIR/spotify.sh $SPOTIFY_DISPLAY_CONTROLS"
-
-  y_offset=$CONTROLS_Y_OFFSET
-)
-
 spotify_back=(
-  icon=􀊎
-  icon.padding_left=5
+  icon=󰒮
+  icon.padding_left=10
   icon.padding_right=5
-  icon.color=$BACKGROUND
+  icon.color=$CONTROL_COLOR
   script="$PLUGIN_DIR/spotify.sh $SPOTIFY_DISPLAY_CONTROLS"
   label.drawing=off
   y_offset=$CONTROLS_Y_OFFSET
 )
 
 spotify_play=(
-  icon=􀊄
+  icon=󰐊
   background.height=40
   background.corner_radius=20
   width=40
@@ -160,43 +163,30 @@ spotify_play=(
 )
 
 spotify_next=(
-  icon=􀊐
-  icon.padding_left=5
-  icon.padding_right=5
-  icon.color=$BACKGROUND
-  label.drawing=off
-  script="$PLUGIN_DIR/spotify.sh $SPOTIFY_DISPLAY_CONTROLS"
-  y_offset=$CONTROLS_Y_OFFSET
-)
-
-spotify_repeat=(
-  icon=􀊞
-  icon.highlight_color=$BACKGROUND
+  icon=󰒭
   icon.padding_left=5
   icon.padding_right=10
-  icon.color=$DISABLED_COLOR
+  icon.color=$CONTROL_COLOR
   label.drawing=off
   script="$PLUGIN_DIR/spotify.sh $SPOTIFY_DISPLAY_CONTROLS"
   y_offset=$CONTROLS_Y_OFFSET
 )
 
-spotify_controls=(
-  background.color=$ACCENT_COLOR
-  background.corner_radius=11
-  background.drawing=on
-  y_offset=$CONTROLS_Y_OFFSET
-)
 
 # ────────────────────────────────────
 # ▸ SketchyBar Setup
 # ────────────────────────────────────
 
+# The plugin skips the cover when the track's artwork URL matches the one it
+# last saved; forget it so a fresh bar sets the cover for the current track
+rm -f /tmp/cover.jpg.url
+
 sketchybar --add event spotify_change $SPOTIFY_EVENT             \
+           --add event spotify_init                              \
            --add item spotify.anchor right                       \
            --set spotify.anchor "${spotify_anchor[@]}"           \
-           --subscribe spotify.anchor mouse.entered mouse.exited \
-                                     mouse.exited.global         \
-                                     spotify_init                \
+           --subscribe spotify.anchor mouse.clicked              \
+                                     spotify_init spotify_change \
                                                                  \
            --add item spotify.cover popup.spotify.anchor         \
            --set spotify.cover "${spotify_cover[@]}"             \
@@ -218,9 +208,8 @@ sketchybar --add event spotify_change $SPOTIFY_EVENT             \
 # ────────────────────────────────────
 
 if [ "$SPOTIFY_DISPLAY_CONTROLS" = true ]; then
-  sketchybar --add item spotify.shuffle popup.spotify.anchor       \
-             --set spotify.shuffle "${spotify_shuffle[@]}"         \
-             --subscribe spotify.shuffle mouse.clicked             \
+  sketchybar --add item spotify.lead popup.spotify.anchor          \
+             --set spotify.lead width=$CONTROLS_LEAD padding_left=0 padding_right=0 \
                                                                    \
              --add item spotify.back popup.spotify.anchor          \
              --set spotify.back "${spotify_back[@]}"               \
@@ -234,23 +223,11 @@ if [ "$SPOTIFY_DISPLAY_CONTROLS" = true ]; then
              --set spotify.next "${spotify_next[@]}"               \
              --subscribe spotify.next mouse.clicked                \
                                                                    \
-             --add item spotify.repeat popup.spotify.anchor        \
-             --set spotify.repeat "${spotify_repeat[@]}"           \
-             --subscribe spotify.repeat mouse.clicked              \
-                                                                   \
              --add item spotify.spacer popup.spotify.anchor        \
-             --set spotify.spacer width=5                          \
-                                                                   \
-             --add bracket spotify.controls spotify.shuffle        \
-                                            spotify.back           \
-                                            spotify.play           \
-                                            spotify.next           \
-                                            spotify.repeat         \
-             --set spotify.controls "${spotify_controls[@]}"
+             --set spotify.spacer width=$CONTROLS_TRAIL padding_left=0 padding_right=0
 fi
 
 # ────────────────────────────────────
 # ▸ Trigger Initial Update
 # ────────────────────────────────────
-sketchybar --add event spotify_init
 sketchybar --trigger spotify_init
