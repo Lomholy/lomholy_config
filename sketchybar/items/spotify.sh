@@ -91,13 +91,16 @@ spotify_album=(
   label.color=$TERTIARY_COLOR
 )
 
+ICON_WIDTH=50
+LABEL_WIDTH=50
+SLIDER_WIDTH=100
+
 # The title/artist/album/progress rows have width=0, so the popup's width comes
-# from the cover plus the controls row. The progress row (time, slider, time)
-# is sized to fit inside the controls row.
-CONTROLS_ROW_WIDTH=132 # back + play + next, including padding
-ICON_WIDTH=35
-LABEL_WIDTH=35
-SLIDER_WIDTH=$((CONTROLS_ROW_WIDTH - ICON_WIDTH - LABEL_WIDTH))
+# from the cover plus the controls row (lead spacer, back, play, next, trail
+# spacer). The spacers centre back/play/next under the progress row and make
+# the popup wide enough to contain it.
+CONTROLS_LEAD=29
+CONTROLS_TRAIL=44
 
 STATE_WIDTH=$([ "$SPOTIFY_DISPLAY_CONTROLS" = true ] && echo 0 || echo $((ICON_WIDTH + LABEL_WIDTH + SLIDER_WIDTH)))
 
@@ -110,7 +113,7 @@ spotify_state=(
   label.font="$FONT:Light Italic:10.0"
   label.width=$LABEL_WIDTH
   label="00:00"
-  label.align=right
+  label.padding_left=20
   y_offset=$((Y_OFFSET))
   width=$STATE_WIDTH
   slider.background.height=6
@@ -201,7 +204,10 @@ sketchybar --add event spotify_change $SPOTIFY_EVENT             \
 # ────────────────────────────────────
 
 if [ "$SPOTIFY_DISPLAY_CONTROLS" = true ]; then
-  sketchybar --add item spotify.back popup.spotify.anchor          \
+  sketchybar --add item spotify.lead popup.spotify.anchor          \
+             --set spotify.lead width=$CONTROLS_LEAD padding_left=0 padding_right=0 \
+                                                                   \
+             --add item spotify.back popup.spotify.anchor          \
              --set spotify.back "${spotify_back[@]}"               \
              --subscribe spotify.back mouse.clicked                \
                                                                    \
@@ -214,7 +220,7 @@ if [ "$SPOTIFY_DISPLAY_CONTROLS" = true ]; then
              --subscribe spotify.next mouse.clicked                \
                                                                    \
              --add item spotify.spacer popup.spotify.anchor        \
-             --set spotify.spacer width=5
+             --set spotify.spacer width=$CONTROLS_TRAIL padding_left=0 padding_right=0
 fi
 
 # ────────────────────────────────────
