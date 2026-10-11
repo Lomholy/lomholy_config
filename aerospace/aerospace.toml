@@ -150,7 +150,7 @@ on-mode-changed = []
     alt-5 = 'workspace '
     alt-6 = 'workspace 󰐨'
     alt-7 = 'workspace '
-    alt-8 = 'workspace 8'
+    alt-8 = 'workspace 󰡈'
     alt-9 = 'workspace '
 
 
@@ -162,7 +162,7 @@ on-mode-changed = []
     alt-shift-5 = 'move-node-to-workspace '
     alt-shift-6 = 'move-node-to-workspace 󰐨'
     alt-shift-7 = 'move-node-to-workspace '
-    alt-shift-8 = 'move-node-to-workspace 8'
+    alt-shift-8 = 'move-node-to-workspace 󰡈'
     alt-shift-9 = 'move-node-to-workspace '
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
