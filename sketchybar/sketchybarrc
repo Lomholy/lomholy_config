@@ -5,7 +5,7 @@
 
 PLUGIN_DIR="$CONFIG_DIR/plugins"
 ITEM_DIR="$CONFIG_DIR/items"
-GREEN=0xff00ff00
+source "$CONFIG_DIR/../colors.sh"
 
 ##### Bar Appearance #####
 # Configuring the general appearance of the bar.
@@ -90,8 +90,8 @@ sketchybar --add item  ip_address right                              \
                                   background.height=24               \
                                   icon.highlight=on                  \
                                   label.highlight=on                 \
-                                  icon.highlight_color=$GREEN              \
-                                  label.highlight_color=$GREEN              \
+                                  icon.highlight_color=$BORDER_COLOR             \
+                                  label.highlight_color=$BORDER_COLOR             \
            --subscribe ip_address wifi_change                        \
 
 sketchybar --add item clock right \

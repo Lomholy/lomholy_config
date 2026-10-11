@@ -19,6 +19,10 @@ config="$HOME/.config/aerospace/aerospace.toml"
 curve=tanh
 frames=15 # animation length in frames (60 per second)
 
+source "$(dirname "$0")/../../colors.sh"
+icon_on=$BORDER_COLOR
+icon_off="0x00${BORDER_COLOR:4}" # same colour, fully transparent
+
 focused="${FOCUSED_WORKSPACE:-$(aerospace list-workspaces --focused)}"
 on_monitor="$(aerospace list-workspaces --monitor focused)"
 non_empty="$(aerospace list-workspaces --monitor focused --empty no)"
@@ -55,16 +59,16 @@ while IFS= read -r ws; do
         icon.align=center
         icon.padding_left=12
         icon.highlight=on
-        icon.highlight_color=0x0000ff00
+        icon.highlight_color=$icon_off
         click_script="aerospace workspace '$ws'"
     )
   fi
 
   if grep -Fxq -- "$ws" <<<"$on_monitor" &&
     { [ "$ws" = "$focused" ] || grep -Fxq -- "$ws" <<<"$non_empty"; }; then
-    state+=(--set "$item" width=40 padding_left=5 padding_right=5 icon.highlight_color=0xff00ff00)
+    state+=(--set "$item" width=40 padding_left=5 padding_right=5 icon.highlight_color=$icon_on)
   else
-    state+=(--set "$item" width=0 padding_left=0 padding_right=0 icon.highlight_color=0x0000ff00)
+    state+=(--set "$item" width=0 padding_left=0 padding_right=0 icon.highlight_color=$icon_off)
   fi
 
   if [ "$ws" = "$focused" ]; then
