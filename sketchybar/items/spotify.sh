@@ -17,9 +17,7 @@ CONTROL_COLOR=0xffd2b48c # tan
 SECONDARY_COLOR=0xffbbbbbb
 TERTIARY_COLOR=0xff888888
 POPUP_BACKGROUND=0xc01e1e2e # dark, ~75% opaque
-# Popup border matches the window borders' active_color
-POPUP_BORDER=$(sed -nE 's/^[[:space:]]*active_color=(0x[0-9a-fA-F]+).*/\1/p' "$HOME/.config/borders/bordersrc" 2>/dev/null | head -1)
-POPUP_BORDER=${POPUP_BORDER:-0xff957FB8}
+POPUP_BORDER=$BORDER_COLOR # from colors.sh, same as the window borders
 
 SPOTIFY_EVENT="com.spotify.client.PlaybackStateChanged"
 POPUP_SCRIPT="sketchybar -m --set spotify.anchor popup.drawing=toggle"
