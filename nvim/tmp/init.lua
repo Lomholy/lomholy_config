@@ -241,58 +241,13 @@ vim.filetype.add({
 })
 
 
--- Utilities (optional but handy)
-local util = require('lspconfig.util')  -- provides root_pattern, dirname
-
--- Prevent duplicate clients per buffer by checking existing clients
-local function has_client_for_buf(bufnr, name)
-  for _, client in pairs(vim.lsp.get_active_clients({bufnr = bufnr})) do
-    if client.name == name then return true end
-  end
-  return false
-end
-
-
-local uv = vim.uv or vim.loop
 -- McStas language server from Lomholy/VS_for_McStas (server/python), see README
-vim.api.nvim_create_autocmd('FileType', {
-  pattern = 'mccode',
-  callback = function(args)
-    if vim.fn.executable('mcstas-language-server') == 0 then return end
-
-    local bufnr = args.buf
-    local fname = vim.api.nvim_buf_get_name(bufnr)
-    local root = (fname ~= '' and vim.fs.dirname(fname)) or uv.cwd()
-
-    -- prevent duplicate clients for the same root
-    for _, c in ipairs(vim.lsp.get_clients({ name = 'mcstas_language_server' })) do
-      if c.config.root_dir == root then
-        -- already running for this workspace: just attach this buffer
-        vim.lsp.buf_attach_client(bufnr, c.id)
-        return
-      end
-    end
-  
-    vim.lsp.start({
-      name = 'mcstas_language_server',  -- use a stable, lowercase, no-space name
-      cmd = { 'mcstas-language-server' },
-      root_dir = root,
-      on_init = function(client, init_result)
-      end,
-
-      on_attach = function(client, b)
-        -- Mark for debugging and set buffer-local opts if needed
-        vim.b[b].mcstas_lsp_attached = true
-
-        -- Example keymaps:
-        local opts = { buffer = b, silent = true }
-        vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-        vim.keymap.set('n', 'K',  vim.lsp.buf.hover,      opts)
-      end,
-
-    })
-  end,
+vim.lsp.config('mcstas', {
+  cmd = { 'mcstas-language-server' },
+  filetypes = { 'mccode' },
+  root_markers = { '.git' },
 })
+vim.lsp.enable('mcstas')
 -- -----------------------------------------------------------------------------------------------
 -- Keymap settings
 -- -----------------------------------------------------------------------------------------------
