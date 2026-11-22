@@ -61,9 +61,9 @@ vim.lsp.inlay_hint.enable(false)
 -- Plugin list
 -- -----------------------------------------------------------------------------------------------
 local plugins = {
-  -- { "github/copilot.vim"},
 	{ "nvim-lua/plenary.nvim" }, -- used by several other plugins
 	{ "rebelot/kanagawa.nvim" }, -- Kanagawa theme (feel free to choose another!)
+  { "Lomholy/VS_for_McStas"},
 --  {"ribru17/bamboo.nvim"}, -- Osaka theme
 -- {"ellisonleao/gruvbox.nvim", priority = 1000 , config = true, opts = ...},
 	{ "nvim-tree/nvim-web-devicons", lazy = true }, -- used by lualine and nvim-tree
