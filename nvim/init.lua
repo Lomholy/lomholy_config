@@ -63,7 +63,7 @@ vim.lsp.inlay_hint.enable(false)
 local plugins = {
 	{ "nvim-lua/plenary.nvim" }, -- used by several other plugins
 	{ "rebelot/kanagawa.nvim" }, -- Kanagawa theme (feel free to choose another!)
-  { "Lomholy/VS_for_McStas"},
+  { "Lomholy/VS_for_McStas", build = "conda run -n mcstas pip install --force-reinstall ./server/python" },
 --  {"ribru17/bamboo.nvim"}, -- Osaka theme
 -- {"ellisonleao/gruvbox.nvim", priority = 1000 , config = true, opts = ...},
 	{ "nvim-tree/nvim-web-devicons", lazy = true }, -- used by lualine and nvim-tree
@@ -243,7 +243,7 @@ vim.filetype.add({
 
 -- McStas language server from Lomholy/VS_for_McStas (server/python), see README
 vim.lsp.config('mcstas', {
-  cmd = { 'mcstas-language-server' },
+  cmd = { vim.fn.expand('~/miniforge3/envs/mcstas/bin/mcstas-language-server') },
   filetypes = { 'mccode' },
   root_markers = { '.git' },
 })
